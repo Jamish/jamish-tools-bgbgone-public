@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label=">j.sh favicon">
+    <!-- Simple black square background with centered green prompt text -->
+    <rect width="64" height="64" fill="#000000" />
+    <text x="32" y="36" fill="#00ff66" font-family="Menlo, Monaco, 'Courier New', monospace" font-size="20" text-anchor="middle" dominant-baseline="middle">&gt;j.sh</text>
+</svg>

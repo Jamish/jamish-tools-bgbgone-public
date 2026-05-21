@@ -1,0 +1,203 @@
+---
+import '../styles/global.css';
+import logoUrl from '../assets/logo.svg?url';
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bgbgone — background remover</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <style>
+    #drop-zone {
+      border: 2px dashed rgba(0, 255, 102, 0.3);
+      border-radius: 8px;
+      padding: 64px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      margin: 48px auto 0;
+      max-width: 560px;
+      user-select: none;
+    }
+    :root[data-theme='light'] #drop-zone {
+      border-color: rgba(0, 0, 0, 0.18);
+    }
+    #drop-zone:hover,
+    #drop-zone.drag-over {
+      border-color: var(--text);
+      background: var(--accent);
+    }
+    #drop-label {
+      margin: 0;
+      font-size: 1rem;
+    }
+    #drop-label span {
+      color: var(--muted);
+      font-size: 0.85rem;
+      display: block;
+      margin-top: 6px;
+    }
+    #status {
+      margin: 20px auto 0;
+      max-width: 560px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    #result {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+      margin: 28px auto 0;
+      max-width: 560px;
+    }
+    /* checkerboard to visualise transparency */
+    #preview-wrap {
+      width: 100%;
+      border-radius: 6px;
+      overflow: hidden;
+      background-color: #c8c8c8;
+      background-image:
+        linear-gradient(45deg, #999 25%, transparent 25%),
+        linear-gradient(-45deg, #999 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #999 75%),
+        linear-gradient(-45deg, transparent 75%, #999 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    }
+    #preview {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    #save-btn {
+      background: transparent;
+      border: 1px solid var(--text);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      padding: 8px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    #save-btn:hover {
+      background: var(--text);
+      color: var(--bg);
+    }
+  </style>
+</head>
+<body>
+  <div class="site">
+    <header class="site-header">
+      <div class="header-row">
+        <div class="brand">
+          <img src={logoUrl} class="logo" alt="" />
+          bgbgone
+          <small>bg remover</small>
+        </div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+      </div>
+    </header>
+    <main class="container">
+      <div id="drop-zone" role="button" tabindex="0" aria-label="Drop image here or click to choose a file">
+        <input type="file" id="file-input" accept="image/*" hidden />
+        <p id="drop-label">
+          drop image here
+          <span>or click to choose a file</span>
+        </p>
+      </div>
+      <p id="status" hidden></p>
+      <div id="result" hidden>
+        <div id="preview-wrap">
+          <img id="preview" alt="background removed result" />
+        </div>
+        <button id="save-btn">↓ save .png</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    import '../scripts/theme-toggle.js';
+    import { removeBackground } from '@imgly/background-removal';
+
+    const dropZone = document.getElementById('drop-zone')!;
+    const fileInput = document.getElementById('file-input') as HTMLInputElement;
+    const statusEl = document.getElementById('status')!;
+    const resultEl = document.getElementById('result')!;
+    const preview = document.getElementById('preview') as HTMLImageElement;
+    const saveBtn = document.getElementById('save-btn')!;
+
+    let currentObjectUrl: string | null = null;
+
+    function showStatus(msg: string) {
+      statusEl.textContent = msg;
+      statusEl.hidden = false;
+    }
+
+    async function processFile(file: File) {
+      if (currentObjectUrl) {
+        URL.revokeObjectURL(currentObjectUrl);
+        currentObjectUrl = null;
+      }
+      resultEl.hidden = true;
+      showStatus('loading model…');
+
+      try {
+        const blob = await removeBackground(file, {
+          progress: (key: string, current: number, total: number) => {
+            if (total > 0) {
+              showStatus(`${key} ${Math.round((current / total) * 100)}%`);
+            }
+          },
+        });
+
+        currentObjectUrl = URL.createObjectURL(blob);
+        preview.src = currentObjectUrl;
+        statusEl.hidden = true;
+        resultEl.hidden = false;
+      } catch (err) {
+        showStatus('error: ' + (err instanceof Error ? err.message : String(err)));
+      }
+    }
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (file) processFile(file);
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', (e) => {
+      if (!dropZone.contains((e as DragEvent).relatedTarget as Node)) {
+        dropZone.classList.remove('drag-over');
+      }
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = (e as DragEvent).dataTransfer?.files[0];
+      if (file?.type.startsWith('image/')) processFile(file);
+    });
+
+    saveBtn.addEventListener('click', () => {
+      if (!currentObjectUrl) return;
+      const a = document.createElement('a');
+      a.href = currentObjectUrl;
+      a.download = 'bgbgone.png';
+      a.click();
+    });
+  </script>
+</body>
+</html>

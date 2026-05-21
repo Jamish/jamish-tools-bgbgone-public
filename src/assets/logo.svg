@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="44" viewBox="0 0 48 44" role="img" aria-label=">j.sh logo">
+  <!-- Outer rounded bezel (4:3) - slightly lighter gray -->
+  <rect x="2" y="2" width="44" height="33" rx="6" fill="#111111" stroke="#444444" stroke-width="2" />
+  <!-- Inner screen (pure black) -->
+  <rect x="6" y="6" width="36" height="25" rx="4" fill="#000000" />
+  <!-- Prompt text centered in inner screen -->
+  <text x="24" y="18.5" fill="#00ff66" font-family="Menlo, Monaco, 'Courier New', monospace" font-size="12" text-anchor="middle" dominant-baseline="middle">&gt;j.sh</text>
+  <!-- Wider rounded stand centered under bezel -->
+  <rect x="12" y="36" width="24" height="4" rx="1" fill="#3a3a3a" />
+</svg>

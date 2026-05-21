@@ -1,0 +1,21 @@
+{
+  "name": "jamish-tools-bgbgone",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "clean": "rm -rf .astro",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
+    "@imgly/background-removal-node": "^1.4.5",
+    "@vercel/analytics": "^1.5.0",
+    "astro": "^5.13.2"
+  },
+  "devDependencies": {
+    "@astrojs/vercel": "^8.2.6"
+  }
+}
