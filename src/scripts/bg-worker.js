@@ -6,6 +6,7 @@ self.onmessage = async (e) => {
     const blob = await removeBackground(file, {
       publicPath: self.location.origin + '/model/',
       device: 'gpu',
+      model: 'small',
       progress: (key, current, total) => {
         self.postMessage({ type: 'progress', jobId, key, current, total });
       },
