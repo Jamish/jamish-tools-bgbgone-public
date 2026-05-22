@@ -2,7 +2,7 @@
 
 Try it at https://bgbgone.jami.sh
 
-Background Be Gone! A quick and dirty web tool for removing backgrounds.
+Background Begone! A quick and dirty web tool for removing backgrounds.
 
 Your images are processed entirely in your browser — nothing is sent to any server. Processing time depends on your hardware.
 
