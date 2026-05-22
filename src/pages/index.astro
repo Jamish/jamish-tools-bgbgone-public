@@ -134,6 +134,45 @@ import logoUrl from '../assets/logo.svg?url';
     #info p:last-child {
       margin-bottom: 0;
     }
+    #resize-options {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #resize-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .resize-btn {
+      background: transparent;
+      border: 1px solid rgba(0, 255, 102, 0.25);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    :root[data-theme='light'] .resize-btn {
+      border-color: rgba(0, 0, 0, 0.15);
+    }
+    .resize-btn:hover {
+      border-color: var(--text);
+      color: var(--text);
+    }
+    .resize-btn.active {
+      border-color: var(--text);
+      color: var(--text);
+    }
+    #resize-hint {
+      margin: 0;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -158,6 +197,15 @@ import logoUrl from '../assets/logo.svg?url';
             <span>or paste from clipboard</span>
           </p>
           <img id="drop-preview" draggable="false" hidden alt="" />
+        </div>
+        <div id="resize-options">
+          <div id="resize-btns" role="group" aria-label="Downscale options">
+            <button class="resize-btn active" data-size="">no resize</button>
+            <button class="resize-btn" data-size="2048">2048px</button>
+            <button class="resize-btn" data-size="1024">1024px</button>
+            <button class="resize-btn" data-size="512">512px</button>
+          </div>
+          <p id="resize-hint">scale down your image to avoid crashes on mobile</p>
         </div>
         <p id="status" hidden></p>
         <div id="result" hidden>
@@ -192,6 +240,15 @@ import logoUrl from '../assets/logo.svg?url';
     let currentObjectUrl: string | null = null;
     let inputFileName = 'image';
     let currentJobId = 0;
+    let maxResizePx: number | null = null;
+
+    document.querySelectorAll<HTMLButtonElement>('.resize-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.resize-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        maxResizePx = btn.dataset.size ? parseInt(btn.dataset.size) : null;
+      });
+    });
 
     const worker = new BgWorker();
     worker.onmessage = (e: MessageEvent) => {
@@ -235,6 +292,24 @@ import logoUrl from '../assets/logo.svg?url';
       worker.postMessage({ jobId: currentJobId, file: blob });
     }
 
+    async function resizeBlob(blob: Blob, maxPx: number): Promise<Blob> {
+      const bitmap = await createImageBitmap(blob);
+      const { width, height } = bitmap;
+      if (width <= maxPx && height <= maxPx) {
+        bitmap.close();
+        return blob;
+      }
+      const scale = maxPx / Math.max(width, height);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+      canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      return new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('canvas toBlob failed')), 'image/jpeg', 0.92)
+      );
+    }
+
     async function loadFile(file: File) {
       const baseName = file.name.replace(/\.[^.]+$/, '');
       inputFileName = baseName || 'pasted_image';
@@ -243,6 +318,11 @@ import logoUrl from '../assets/logo.svg?url';
       if (await isHeic(file)) {
         showStatus('converting HEIC…');
         imageBlob = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.8 });
+      }
+
+      if (maxResizePx !== null) {
+        showStatus('resizing…');
+        imageBlob = await resizeBlob(imageBlob, maxResizePx);
       }
 
       showDropPreview(imageBlob);
