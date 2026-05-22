@@ -56,6 +56,7 @@ import logoUrl from '../assets/logo.svg?url';
       max-height: 360px;
       object-fit: contain;
       transition: opacity 0.15s;
+      pointer-events: none;
     }
     #drop-label {
       margin: 0;
@@ -78,6 +79,9 @@ import logoUrl from '../assets/logo.svg?url';
       align-items: flex-start;
       gap: 14px;
       margin-top: 28px;
+    }
+    #result[hidden] {
+      display: none;
     }
     /* checkerboard to visualise transparency */
     #preview-wrap {
@@ -153,7 +157,7 @@ import logoUrl from '../assets/logo.svg?url';
             <span>or click to choose a file</span>
             <span>or paste from clipboard</span>
           </p>
-          <img id="drop-preview" hidden alt="" />
+          <img id="drop-preview" draggable="false" hidden alt="" />
         </div>
         <p id="status" hidden></p>
         <div id="result" hidden>
@@ -161,10 +165,11 @@ import logoUrl from '../assets/logo.svg?url';
             <img id="preview" alt="background removed result" />
           </div>
           <button id="save-btn">↓ save .png</button>
-          <div id="info">
-            <p>built using <a href="https://github.com/imgly/background-removal-js">imgly/background-removal-js</a> (AGPL-3.0) · <a href="https://github.com/Jamish/jamish-tools-bgbgone">source</a></p>
-            <p>your images are processed entirely in your browser — nothing is sent to any server. processing time depends on your hardware.</p>
-          </div>
+        </div>
+        <div id="info">
+          <p>Your images are processed entirely in your browser — nothing is sent to any server. Processing time depends on your hardware.</p>
+          <p>Built using <a href="https://github.com/imgly/background-removal-js">imgly/background-removal-js</a> (AGPL-3.0)</p>
+          <p>This tool is <a href="https://github.com/Jamish/jamish-tools-bgbgone">open source on GitHub</a></p>
         </div>
       </div>
     </main>
@@ -172,7 +177,7 @@ import logoUrl from '../assets/logo.svg?url';
 
   <script>
     import '../scripts/theme-toggle.js';
-    import { removeBackground } from '@imgly/background-removal';
+    import BgWorker from '../scripts/bg-worker.js?worker';
 
     const dropZone = document.getElementById('drop-zone')!;
     const fileInput = document.getElementById('file-input') as HTMLInputElement;
@@ -185,6 +190,25 @@ import logoUrl from '../assets/logo.svg?url';
 
     let currentObjectUrl: string | null = null;
     let inputFileName = 'image';
+    let currentJobId = 0;
+
+    const worker = new BgWorker();
+    worker.onmessage = (e: MessageEvent) => {
+      const { type, jobId, key, current, total, blob, message } = e.data;
+      if (jobId !== currentJobId) return;
+      if (type === 'progress' && total > 0) {
+        showStatus(`${key} ${Math.round((current / total) * 100)}%`);
+      } else if (type === 'result') {
+        if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+        currentObjectUrl = URL.createObjectURL(blob as Blob);
+        preview.src = currentObjectUrl;
+        statusEl.hidden = true;
+        resultEl.hidden = false;
+        setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250);
+      } else if (type === 'error') {
+        showStatus('error: ' + message);
+      }
+    };
 
     function showStatus(msg: string) {
       statusEl.textContent = msg;
@@ -202,35 +226,12 @@ import logoUrl from '../assets/logo.svg?url';
       dropPreview.src = url;
     }
 
-    async function processFile(file: File) {
-      if (currentObjectUrl) {
-        URL.revokeObjectURL(currentObjectUrl);
-        currentObjectUrl = null;
-      }
+    function processFile(file: File) {
       preview.src = '';
       resultEl.hidden = true;
       showStatus('loading model…');
-
-      try {
-        const blob = await removeBackground(file, {
-          progress: (key: string, current: number, total: number) => {
-            if (total > 0) {
-              showStatus(`${key} ${Math.round((current / total) * 100)}%`);
-            }
-          },
-        });
-
-        currentObjectUrl = URL.createObjectURL(blob);
-        preview.src = currentObjectUrl;
-        statusEl.hidden = true;
-        resultEl.hidden = false;
-        // Perform this after a short timer to ensure the result is rendered before scrolling
-        setTimeout(() => {
-            resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 250);
-      } catch (err) {
-        showStatus('error: ' + (err instanceof Error ? err.message : String(err)));
-      }
+      currentJobId++;
+      worker.postMessage({ jobId: currentJobId, file });
     }
 
     function loadFile(file: File) {

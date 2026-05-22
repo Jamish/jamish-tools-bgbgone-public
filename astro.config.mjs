@@ -11,6 +11,9 @@ export default defineConfig({
     },
   }),
   vite: {
+    worker: {
+      format: 'es',
+    },
     optimizeDeps: {
       exclude: ['@imgly/background-removal'],
     },
