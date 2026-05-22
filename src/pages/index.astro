@@ -113,6 +113,23 @@ import logoUrl from '../assets/logo.svg?url';
       background: var(--text);
       color: var(--bg);
     }
+    #info {
+      width: 100%;
+      padding-top: 20px;
+      border-top: 1px solid rgba(0, 255, 102, 0.1);
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    :root[data-theme='light'] #info {
+      border-top-color: rgba(0, 0, 0, 0.08);
+    }
+    #info p {
+      margin: 0 0 4px;
+    }
+    #info p:last-child {
+      margin-bottom: 0;
+    }
   </style>
 </head>
 <body>
@@ -120,7 +137,7 @@ import logoUrl from '../assets/logo.svg?url';
     <header class="site-header">
       <div class="header-row">
         <div class="brand">
-          <img src={logoUrl} class="logo" alt="" />
+          <a href="https://www.jami.sh"><img src={logoUrl} class="logo" alt="" /></a>
           bgbgone
           <small>local background remover by <a href="https://www.jami.sh">jami.sh</a></small>
         </div>
@@ -144,6 +161,10 @@ import logoUrl from '../assets/logo.svg?url';
             <img id="preview" alt="background removed result" />
           </div>
           <button id="save-btn">↓ save .png</button>
+          <div id="info">
+            <p>built using <a href="https://github.com/imgly/background-removal-js">imgly/background-removal-js</a> (AGPL-3.0) · <a href="https://github.com/Jamish/jamish-tools-bgbgone">source</a></p>
+            <p>your images are processed entirely in your browser — nothing is sent to any server. processing time depends on your hardware.</p>
+          </div>
         </div>
       </div>
     </main>
@@ -172,11 +193,13 @@ import logoUrl from '../assets/logo.svg?url';
 
     function showDropPreview(file: File) {
       const url = URL.createObjectURL(file);
-      dropPreview.src = url;
+      dropPreview.onload = null;
+      dropPreview.src = '';
       dropPreview.hidden = false;
       dropLabel.hidden = true;
       dropZone.classList.add('has-image');
       dropPreview.onload = () => URL.revokeObjectURL(url);
+      dropPreview.src = url;
     }
 
     async function processFile(file: File) {
@@ -184,6 +207,7 @@ import logoUrl from '../assets/logo.svg?url';
         URL.revokeObjectURL(currentObjectUrl);
         currentObjectUrl = null;
       }
+      preview.src = '';
       resultEl.hidden = true;
       showStatus('loading model…');
 
@@ -200,6 +224,10 @@ import logoUrl from '../assets/logo.svg?url';
         preview.src = currentObjectUrl;
         statusEl.hidden = true;
         resultEl.hidden = false;
+        // Perform this after a short timer to ensure the result is rendered before scrolling
+        setTimeout(() => {
+            resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 250);
       } catch (err) {
         showStatus('error: ' + (err instanceof Error ? err.message : String(err)));
       }
