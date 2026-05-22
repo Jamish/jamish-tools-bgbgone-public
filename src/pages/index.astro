@@ -22,7 +22,6 @@ import logoUrl from '../assets/logo.svg?url';
       text-align: center;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
-      margin-top: 48px;
       user-select: none;
       overflow: hidden;
     }
@@ -169,7 +168,7 @@ import logoUrl from '../assets/logo.svg?url';
     }
     #resize-hint {
       margin: 0;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--muted);
       line-height: 1.5;
     }
@@ -199,13 +198,13 @@ import logoUrl from '../assets/logo.svg?url';
           <img id="drop-preview" draggable="false" hidden alt="" />
         </div>
         <div id="resize-options">
+          <p id="resize-hint">Downsize Image: helps avoid crashes on mobile</p>
           <div id="resize-btns" role="group" aria-label="Downscale options">
             <button class="resize-btn active" data-size="">no resize</button>
             <button class="resize-btn" data-size="2048">2048px</button>
             <button class="resize-btn" data-size="1024">1024px</button>
             <button class="resize-btn" data-size="512">512px</button>
           </div>
-          <p id="resize-hint">scale down your image to avoid crashes on mobile</p>
         </div>
         <p id="status" hidden></p>
         <div id="result" hidden>
