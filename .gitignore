@@ -10,6 +10,9 @@ public/model/
 # vercel build stuff
 .vercel
 
+# temp directory
+.tmp/
+
 # dependencies
 node_modules/
 
@@ -22,6 +25,9 @@ pnpm-debug.log*
 # environment variables
 .env
 .env.production
+
+# temp files used by scripts/copy-models.mjs
+.tmp/
 
 # macOS-specific files
 .DS_Store

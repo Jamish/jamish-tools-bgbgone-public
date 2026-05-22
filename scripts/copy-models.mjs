@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { pipeline } from 'stream/promises';
-import { execSync } from 'child_process';
+import { extract } from 'tar';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { tmpdir } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -28,29 +27,35 @@ if (existsSync(versionFile)) {
   }
 }
 
-// 3. Download the data package tarball to a temp file
+// 3. Download the data package tarball into .tmp/
+const tmp = join(root, '.tmp');
+mkdirSync(tmp, { recursive: true });
+
 const url = `https://staticimgly.com/@imgly/background-removal-data/${version}/package.tgz`;
 console.log(`Downloading ${url} ...`);
 
 const res = await fetch(url);
 if (!res.ok) throw new Error(`Download failed: ${res.status} ${res.statusText}`);
 
-const tmpFile = join(tmpdir(), `imgly-models-${version}.tgz`);
+const tmpFile = join(tmp, `imgly-models-${version}.tgz`);
 await pipeline(res.body, createWriteStream(tmpFile));
 console.log(`Saved to ${tmpFile}`);
 
-// 4. Extract package/dist/* → public/model/
+// 4. Extract package/dist/* → public/model/ using the tar npm package
 const dest = join(root, 'public', 'model');
 mkdirSync(dest, { recursive: true });
 console.log(`Extracting into ${dest} ...`);
 
-execSync(`tar -xzf "${tmpFile}" -C "${dest}" --strip-components=2 "package/dist"`, {
-  stdio: 'inherit',
+await extract({
+  file: tmpFile,
+  cwd: dest,
+  strip: 2,
+  filter: (path) => path.startsWith('package/dist/'),
 });
 
 // 5. Write version.json so next run can skip the download
 writeFileSync(versionFile, JSON.stringify({ version }, null, 2) + '\n');
 
-// 6. Clean up temp file
-rmSync(tmpFile);
+// 6. Clean up
+rmSync(tmp, { recursive: true, force: true });
 console.log('Done.');
