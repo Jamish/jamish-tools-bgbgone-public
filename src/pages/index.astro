@@ -143,7 +143,7 @@ import logoUrl from '../assets/logo.svg?url';
         <div class="brand">
           <a href="https://www.jami.sh"><img src={logoUrl} class="logo" alt="" /></a>
           bgbgone
-          <small>local background remover by <a href="https://www.jami.sh">jami.sh</a></small>
+          <small>Background Be Gone! by <a href="https://www.jami.sh">jami.sh</a></small>
         </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
       </div>
@@ -151,7 +151,7 @@ import logoUrl from '../assets/logo.svg?url';
     <main class="container">
       <div class="panel">
         <div id="drop-zone" role="button" tabindex="0" aria-label="Drop image here or click to choose a file">
-          <input type="file" id="file-input" accept="image/*" hidden />
+          <input type="file" id="file-input" accept="image/*,.heic,.heif" hidden />
           <p id="drop-label">
             drop image here
             <span>or click to choose a file</span>
@@ -178,6 +178,7 @@ import logoUrl from '../assets/logo.svg?url';
   <script>
     import '../scripts/theme-toggle.js';
     import BgWorker from '../scripts/bg-worker.js?worker';
+    import { isHeic, heicTo } from 'heic-to';
 
     const dropZone = document.getElementById('drop-zone')!;
     const fileInput = document.getElementById('file-input') as HTMLInputElement;
@@ -215,8 +216,8 @@ import logoUrl from '../assets/logo.svg?url';
       statusEl.hidden = false;
     }
 
-    function showDropPreview(file: File) {
-      const url = URL.createObjectURL(file);
+    function showDropPreview(blob: Blob) {
+      const url = URL.createObjectURL(blob);
       dropPreview.onload = null;
       dropPreview.src = '';
       dropPreview.hidden = false;
@@ -226,19 +227,26 @@ import logoUrl from '../assets/logo.svg?url';
       dropPreview.src = url;
     }
 
-    function processFile(file: File) {
+    function processFile(blob: Blob) {
       preview.src = '';
       resultEl.hidden = true;
       showStatus('loading model…');
       currentJobId++;
-      worker.postMessage({ jobId: currentJobId, file });
+      worker.postMessage({ jobId: currentJobId, file: blob });
     }
 
-    function loadFile(file: File) {
+    async function loadFile(file: File) {
       const baseName = file.name.replace(/\.[^.]+$/, '');
       inputFileName = baseName || 'pasted_image';
-      showDropPreview(file);
-      processFile(file);
+
+      let imageBlob: Blob = file;
+      if (await isHeic(file)) {
+        showStatus('converting HEIC…');
+        imageBlob = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.8 });
+      }
+
+      showDropPreview(imageBlob);
+      processFile(imageBlob);
     }
 
     dropZone.addEventListener('click', () => fileInput.click());
@@ -266,7 +274,7 @@ import logoUrl from '../assets/logo.svg?url';
       e.preventDefault();
       dropZone.classList.remove('drag-over');
       const file = (e as DragEvent).dataTransfer?.files[0];
-      if (file?.type.startsWith('image/')) loadFile(file);
+      if (file && (file.type.startsWith('image/') || /\.(heic|heif)$/i.test(file.name))) loadFile(file);
     });
 
     document.addEventListener('paste', (e) => {
