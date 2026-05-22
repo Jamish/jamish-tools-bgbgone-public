@@ -1,0 +1,13 @@
+{
+  "headers": [
+    {
+      "source": "/model/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://bgbgone.jami.sh"
+        }
+      ]
+    }
+  ]
+}

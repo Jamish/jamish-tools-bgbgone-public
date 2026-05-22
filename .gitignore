@@ -1,6 +1,9 @@
 # build output
 dist/
 
+# self-hosted model files (generated at build time by scripts/copy-models.mjs)
+public/model/
+
 # generated types
 .astro/
 
