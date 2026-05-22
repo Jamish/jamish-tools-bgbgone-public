@@ -1,4 +1,24 @@
-# Astro Starter Kit: Basics
+# bgbgone
+
+Try it at https://bgbgone.jami.sh
+
+Background Be Gone! A quick and dirty web tool for removing backgrounds.
+
+Your images are processed entirely in your browser — nothing is sent to any server. Processing time depends on your hardware.
+
+Built using [imgly/background-removal-js](https://github.com/imgly/background-removal-js) (AGPL-3.0)
+
+## Repo Setup
+
+I have a private repo with identical code, just so I don't have to expose my Vercel connections and preview builds.
+
+Both are kept in lockstep using:
+```bash
+git remote set-url --add --push origin https://github.com/Jamish/jamish-tools-bgbgone.git
+
+git remote set-url --add --push origin https://github.com/Jamish/jamish-tools-bgbgone-public.git
+```
+
 
 
 ## dev server
